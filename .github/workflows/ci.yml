@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate command templates
+        run: |
+          errors=0
+          for f in templates/commands/*.md; do
+            echo "Checking $f..."
+
+            # Must start with frontmatter
+            if ! head -1 "$f" | grep -q "^---"; then
+              echo "  FAIL: missing frontmatter opening"
+              errors=$((errors + 1))
+            fi
+
+            # Must have description
+            if ! grep -q "^description:" "$f"; then
+              echo "  FAIL: missing description field"
+              errors=$((errors + 1))
+            fi
+
+            # Must have $ARGUMENTS placeholder
+            if ! grep -q '\$ARGUMENTS' "$f"; then
+              echo "  FAIL: missing \$ARGUMENTS placeholder"
+              errors=$((errors + 1))
+            fi
+
+            # Must have at least one ## section
+            sections=$(grep -c "^##" "$f" || true)
+            if [ "$sections" -lt 1 ]; then
+              echo "  FAIL: no sections found"
+              errors=$((errors + 1))
+            fi
+
+            echo "  OK ($sections sections)"
+          done
+
+          if [ "$errors" -gt 0 ]; then
+            echo "FAILED: $errors validation error(s)"
+            exit 1
+          fi
+          echo "All templates valid."
+
+  install-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        agent: [claude, gemini, copilot, cursor, amazonq, windsurf]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install for ${{ matrix.agent }}
+        run: |
+          tmp=$(mktemp -d)
+          ./scripts/install.sh --agent ${{ matrix.agent }} --target "$tmp"
+
+          # Verify files were created
+          count=$(find "$tmp" -name "speckit*" | wc -l)
+          echo "Installed $count command(s) for ${{ matrix.agent }}"
+
+          if [ "$count" -ne 4 ]; then
+            echo "FAIL: expected 4 commands, got $count"
+            exit 1
+          fi
+
+      - name: Verify file naming convention
+        run: |
+          tmp=$(mktemp -d)
+          ./scripts/install.sh --agent ${{ matrix.agent }} --target "$tmp"
+
+          case "${{ matrix.agent }}" in
+            claude|gemini|cursor)
+              # Dot prefix: speckit.name.md
+              for cmd in selfreview pr dora decompose; do
+                if [ ! -f "$tmp/speckit.$cmd.md" ]; then
+                  echo "FAIL: missing speckit.$cmd.md"
+                  exit 1
+                fi
+              done
+              ;;
+            copilot|amazonq|windsurf)
+              # Dash prefix: speckit-name.md
+              for cmd in selfreview pr dora decompose; do
+                if [ ! -f "$tmp/speckit-$cmd.md" ]; then
+                  echo "FAIL: missing speckit-$cmd.md"
+                  exit 1
+                fi
+              done
+              ;;
+          esac
+          echo "Naming convention OK for ${{ matrix.agent }}"
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Shellcheck install script
+        run: npx shellcheck scripts/install.sh
