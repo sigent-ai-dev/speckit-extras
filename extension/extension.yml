@@ -1,0 +1,57 @@
+schema_version: "1.0"
+
+extension:
+  id: extras
+  name: "Spec Kit Extras"
+  version: "1.0.0"
+  description: "Quality gates and delivery tooling — self-review, PR creation, DORA metrics, and design decomposition"
+  author: sigent-ai-dev
+  repository: https://github.com/sigent-ai-dev/speckit-extras
+  license: MIT
+
+requires:
+  speckit_version: ">=0.2.0"
+  tools:
+    - name: gh
+      required: true
+
+provides:
+  commands:
+    - name: speckit.selfreview
+      file: commands/speckit.selfreview.md
+      description: "Structured self-review with C/H/M/L/I severity classification"
+    - name: speckit.pr
+      file: commands/speckit.pr.md
+      description: "PR creation with closing-claim accuracy gate and self-review"
+    - name: speckit.dora
+      file: commands/speckit.dora.md
+      description: "Weekly DORA metrics from GitHub data"
+    - name: speckit.decompose
+      file: commands/speckit.decompose.md
+      description: "Design docs to right-sized GitHub issues"
+
+hooks:
+  after_implement:
+    command: speckit.selfreview
+    optional: true
+    prompt: "Run self-review on implementation?"
+    description: "Auto self-review after implementation completes"
+  after_checklist:
+    command: speckit.selfreview
+    optional: true
+    prompt: "Run self-review after checklist validation?"
+    description: "Auto self-review after checklist pass"
+
+tags:
+  - "quality"
+  - "delivery"
+  - "dora"
+  - "review"
+  - "decomposition"
+
+config:
+  defaults:
+    selfreview_auto_fix: true
+    pr_closing_claim_gate: true
+    dora_output_dir: "doc/reports"
+    decompose_max_size: "L"
