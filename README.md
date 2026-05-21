@@ -158,10 +158,12 @@ Decomposes design documents, ADRs, or architecture docs into reviewed GitHub iss
 
 ## Integration with Spec Kit
 
-These commands complement the core Spec Kit workflow:
+When installed as an extension, hooks fire automatically:
 
 ```
 /speckit.specify  →  /speckit.plan  →  /speckit.tasks  →  /speckit.implement
+                                                                    │
+                                                              [after_implement hook]
                                                                     │
                                                                     ▼
                                                           /speckit.selfreview
@@ -184,15 +186,22 @@ Weekly health check:
 
 ## Integration with Intent Kit
 
-If you use [Intent Kit](https://github.com/superhighway-factory/intent-kit) upstream:
+If you use [Intent Kit](https://github.com/sigent-ai-dev/intent-kit) upstream:
 
 ```
 /intent.decompose produces feature list  →  /speckit.decompose creates issues  →  /speckit.specify per issue
 ```
 
+## Prerequisites
+
+- [Git](https://git-scm.com/)
+- [GitHub CLI (`gh`)](https://cli.github.com/) — required by all four commands
+
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+1. Fork the repo
+2. Create a feature branch
+3. Open a PR — CI must pass (all 18 checks)
 
 ## License
 
