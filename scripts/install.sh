@@ -167,7 +167,7 @@ install_extension() {
       cp "$src" "$dest_file"
       echo "  INSTALLED $dest_file"
     fi
-    ((installed++))
+    installed=$((installed + 1))
   done
 
   echo ""
@@ -220,7 +220,7 @@ install_standalone() {
       fi
       echo "  INSTALLED $dest"
     fi
-    ((installed++))
+    installed=$((installed + 1))
   done
 
   echo ""
