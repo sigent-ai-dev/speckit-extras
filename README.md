@@ -26,15 +26,37 @@ Spec Kit's core workflow ensures features are well-specified and planned. But sh
 
 ## Install
 
-Copy the `templates/commands/` files into your project's Spec Kit commands directory:
+### As a Spec Kit Extension (recommended)
+
+If your project uses Spec Kit, install as an extension:
 
 ```bash
-# For Claude Code
-cp templates/commands/*.md .claude/commands/speckit.*.md
+# From speckit-extras repo
+./scripts/install.sh --extension
 
-# Or use the install script
-./scripts/install.sh --agent claude
+# Or specify target
+./scripts/install.sh --extension --target .specify/extensions/extras
 ```
+
+This installs `extension.yml` + commands into `.specify/extensions/extras/` and enables hooks (auto self-review after `/speckit.implement`).
+
+### Standalone (any project)
+
+Install commands directly into your agent's commands directory:
+
+```bash
+# Claude Code (default)
+./scripts/install.sh --standalone
+
+# Any of 15 supported agents
+./scripts/install.sh --standalone --agent gemini
+./scripts/install.sh --standalone --agent q
+./scripts/install.sh --standalone --agent copilot
+```
+
+Supports: `claude`, `gemini`, `copilot`, `cursor-agent`, `qwen`, `opencode`, `codex`, `windsurf`, `kilocode`, `auggie`, `roo`, `codebuddy`, `q`, `amp`, `shai`
+
+TOML-format agents (Gemini, Qwen) get automatic format conversion.
 
 ## Commands
 

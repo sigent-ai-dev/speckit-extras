@@ -18,25 +18,21 @@ jobs:
           for f in templates/commands/*.md; do
             echo "Checking $f..."
 
-            # Must start with frontmatter
             if ! head -1 "$f" | grep -q "^---"; then
               echo "  FAIL: missing frontmatter opening"
               errors=$((errors + 1))
             fi
 
-            # Must have description
             if ! grep -q "^description:" "$f"; then
               echo "  FAIL: missing description field"
               errors=$((errors + 1))
             fi
 
-            # Must have $ARGUMENTS placeholder
             if ! grep -q '\$ARGUMENTS' "$f"; then
               echo "  FAIL: missing \$ARGUMENTS placeholder"
               errors=$((errors + 1))
             fi
 
-            # Must have at least one ## section
             sections=$(grep -c "^##" "$f" || true)
             if [ "$sections" -lt 1 ]; then
               echo "  FAIL: no sections found"
@@ -52,20 +48,88 @@ jobs:
           fi
           echo "All templates valid."
 
-  install-test:
+      - name: Validate extension manifest
+        run: |
+          echo "Checking extension/extension.yml..."
+
+          if [ ! -f extension/extension.yml ]; then
+            echo "FAIL: extension.yml not found"
+            exit 1
+          fi
+
+          # Check required fields exist
+          for field in schema_version extension requires provides hooks; do
+            if ! grep -q "^$field:" extension/extension.yml; then
+              echo "FAIL: missing top-level field: $field"
+              exit 1
+            fi
+          done
+
+          # Verify all 4 commands declared
+          count=$(grep -c "name: speckit\." extension/extension.yml || true)
+          if [ "$count" -ne 4 ]; then
+            echo "FAIL: expected 4 commands in manifest, found $count"
+            exit 1
+          fi
+
+          echo "  OK (manifest valid, $count commands declared)"
+
+      - name: Validate extension commands match templates
+        run: |
+          for cmd in selfreview pr dora decompose; do
+            if [ ! -f "extension/commands/speckit.$cmd.md" ]; then
+              echo "FAIL: extension/commands/speckit.$cmd.md missing"
+              exit 1
+            fi
+          done
+          echo "All extension commands present."
+
+  extension-install-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        agent: [claude, gemini, copilot, cursor, amazonq, windsurf]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run install for ${{ matrix.agent }}
+      - name: Test extension install
         run: |
           tmp=$(mktemp -d)
-          ./scripts/install.sh --agent ${{ matrix.agent }} --target "$tmp"
+          ./scripts/install.sh --extension --target "$tmp"
 
-          # Verify files were created
+          # Verify extension.yml
+          if [ ! -f "$tmp/extension.yml" ]; then
+            echo "FAIL: extension.yml not installed"
+            exit 1
+          fi
+
+          # Verify all commands
+          count=$(find "$tmp/commands" -name "speckit.*.md" | wc -l)
+          if [ "$count" -ne 4 ]; then
+            echo "FAIL: expected 4 commands, got $count"
+            exit 1
+          fi
+          echo "Extension install OK ($count commands)"
+
+      - name: Test extension dry-run
+        run: |
+          output=$(./scripts/install.sh --extension --dry-run)
+          if ! echo "$output" | grep -q "WOULD COPY"; then
+            echo "FAIL: dry-run should show WOULD COPY"
+            exit 1
+          fi
+          echo "Dry-run OK"
+
+  standalone-install-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        agent: [claude, gemini, copilot, cursor-agent, qwen, opencode, codex, windsurf, kilocode, auggie, roo, codebuddy, q, amp, shai]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run standalone install for ${{ matrix.agent }}
+        run: |
+          tmp=$(mktemp -d)
+          ./scripts/install.sh --standalone --agent ${{ matrix.agent }} --target "$tmp"
+
           count=$(find "$tmp" -name "speckit*" | wc -l)
           echo "Installed $count command(s) for ${{ matrix.agent }}"
 
@@ -74,32 +138,37 @@ jobs:
             exit 1
           fi
 
-      - name: Verify file naming convention
+      - name: Verify format for ${{ matrix.agent }}
         run: |
           tmp=$(mktemp -d)
-          ./scripts/install.sh --agent ${{ matrix.agent }} --target "$tmp"
+          ./scripts/install.sh --standalone --agent ${{ matrix.agent }} --target "$tmp"
 
           case "${{ matrix.agent }}" in
-            claude|gemini|cursor)
-              # Dot prefix: speckit.name.md
-              for cmd in selfreview pr dora decompose; do
-                if [ ! -f "$tmp/speckit.$cmd.md" ]; then
-                  echo "FAIL: missing speckit.$cmd.md"
+            gemini|qwen)
+              # TOML format
+              for f in "$tmp"/*.toml; do
+                if ! grep -q '^description = ' "$f"; then
+                  echo "FAIL: $f missing TOML description"
+                  exit 1
+                fi
+                if ! grep -q '^prompt = """' "$f"; then
+                  echo "FAIL: $f missing TOML prompt block"
                   exit 1
                 fi
               done
+              echo "TOML format OK for ${{ matrix.agent }}"
               ;;
-            copilot|amazonq|windsurf)
-              # Dash prefix: speckit-name.md
-              for cmd in selfreview pr dora decompose; do
-                if [ ! -f "$tmp/speckit-$cmd.md" ]; then
-                  echo "FAIL: missing speckit-$cmd.md"
+            *)
+              # Markdown format
+              for f in "$tmp"/*.md; do
+                if ! head -1 "$f" | grep -q "^---"; then
+                  echo "FAIL: $f missing markdown frontmatter"
                   exit 1
                 fi
               done
+              echo "Markdown format OK for ${{ matrix.agent }}"
               ;;
           esac
-          echo "Naming convention OK for ${{ matrix.agent }}"
 
   shellcheck:
     runs-on: ubuntu-latest
