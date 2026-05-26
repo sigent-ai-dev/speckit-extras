@@ -15,6 +15,14 @@ Spec Kit Extras is a collection of AI agent commands that add delivery-quality d
 | `/speckit.dora` | Generate weekly DORA metrics from GitHub data | Any GH repo with PRs + Actions |
 | `/speckit.decompose` | Decompose design docs into right-sized GitHub issues | Any repo with design docs |
 
+### Works well with
+
+| Kit | What it adds | Link |
+|-----|-------------|------|
+| [Spec Kit](https://github.com/github/spec-kit) | Core specify → plan → tasks → implement workflow | Required foundation |
+| [Intent Kit](https://github.com/sigent-ai-dev/intent-kit) | Intent capture and feature decomposition upstream of Spec Kit | Optional — feeds `/speckit.decompose` |
+| [ADM Kit](https://github.com/sigent-ai-dev/adm-kit) | Architecture Decision Modelling — lineage, invariants, thesis | Optional — complements design docs |
+
 ## Why These Exist
 
 Spec Kit's core workflow ensures features are well-specified and planned. But shipping quality software also requires:
@@ -158,10 +166,12 @@ Decomposes design documents, ADRs, or architecture docs into reviewed GitHub iss
 
 ## Integration with Spec Kit
 
-These commands complement the core Spec Kit workflow:
+When installed as an extension, hooks fire automatically:
 
 ```
 /speckit.specify  →  /speckit.plan  →  /speckit.tasks  →  /speckit.implement
+                                                                    │
+                                                              [after_implement hook]
                                                                     │
                                                                     ▼
                                                           /speckit.selfreview
@@ -184,15 +194,22 @@ Weekly health check:
 
 ## Integration with Intent Kit
 
-If you use [Intent Kit](https://github.com/superhighway-factory/intent-kit) upstream:
+If you use [Intent Kit](https://github.com/sigent-ai-dev/intent-kit) upstream:
 
 ```
 /intent.decompose produces feature list  →  /speckit.decompose creates issues  →  /speckit.specify per issue
 ```
 
+## Prerequisites
+
+- [Git](https://git-scm.com/)
+- [GitHub CLI (`gh`)](https://cli.github.com/) — required by all four commands
+
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+1. Fork the repo
+2. Create a feature branch
+3. Open a PR — CI must pass (all 18 checks)
 
 ## License
 
