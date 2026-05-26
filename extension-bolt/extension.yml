@@ -1,0 +1,65 @@
+schema_version: "1.0"
+
+extension:
+  id: bolt
+  name: "Spec Kit Bolt"
+  version: "1.0.0"
+  description: "Bolt cycles — faster sprints with time-boxed delivery, archival, retrospectives, and roadmap visibility"
+  author: sigent-ai-dev
+  repository: https://github.com/sigent-ai-dev/speckit-extras
+  license: MIT
+
+requires:
+  speckit_version: ">=0.2.0"
+  tools:
+    - name: git
+      required: true
+
+provides:
+  commands:
+    - name: speckit.bolt
+      file: commands/speckit.bolt.md
+      description: "Create and manage bolt cycles — time-boxed delivery sprints"
+    - name: speckit.archive
+      file: commands/speckit.archive.md
+      description: "Archive completed bolt with summary, decisions, and retrospective prep"
+    - name: speckit.retrospective
+      file: commands/speckit.retrospective.md
+      description: "Conduct bolt retrospective — clarify decisions and identify improvements"
+    - name: speckit.roadmap
+      file: commands/speckit.roadmap.md
+      description: "Project-level roadmap across bolt cycles"
+
+  scripts:
+    - file: scripts/bash/create-bolt.sh
+      description: "Create bolt directory structure and initialize files"
+    - file: scripts/bash/archive-bolt.sh
+      description: "Archive active bolt to archive directory"
+    - file: scripts/bash/common.sh
+      description: "Shared utilities for bolt scripts"
+    - file: scripts/powershell/create-bolt.ps1
+      description: "Create bolt directory structure (PowerShell)"
+    - file: scripts/powershell/archive-bolt.ps1
+      description: "Archive active bolt (PowerShell)"
+
+hooks:
+  after_implement:
+    command: speckit.bolt
+    optional: true
+    prompt: "Update bolt cycle progress?"
+    description: "Update current bolt with feature completion status"
+
+tags:
+  - "sprint"
+  - "bolt"
+  - "cycle"
+  - "planning"
+  - "retrospective"
+  - "roadmap"
+
+config:
+  defaults:
+    default_duration: "1w"
+    archive_dir: "bolts/archive"
+    active_dir: "bolts/active"
+    roadmap_file: "bolts/roadmap.md"

@@ -3,8 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR/.."
-EXTENSION_DIR="$REPO_ROOT/extension"
-TEMPLATES_DIR="$REPO_ROOT/templates/commands"
 
 usage() {
   cat <<EOF
@@ -13,10 +11,11 @@ Usage: install.sh [OPTIONS]
 Install Spec Kit Extras as a Spec Kit extension or standalone commands.
 
 Modes:
-  --extension       Install as Spec Kit extension into .specify/extensions/extras/ (default)
+  --extension       Install as Spec Kit extension (default)
   --standalone      Install commands directly into agent commands directory
 
 Options:
+  --pack <name>     Extension pack to install: extras (default), bolt, all
   --agent <agent>   Target agent (standalone mode). See list below. (default: claude)
   --target <dir>    Override install directory
   --list            List available commands
@@ -44,6 +43,7 @@ EOF
 }
 
 MODE="extension"
+PACK="extras"
 AGENT="claude"
 TARGET=""
 DRY_RUN=false
@@ -53,6 +53,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --extension) MODE="extension"; shift ;;
     --standalone) MODE="standalone"; shift ;;
+    --pack) PACK="$2"; shift 2 ;;
     --agent) AGENT="$2"; shift 2 ;;
     --target) TARGET="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
@@ -62,13 +63,40 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-COMMANDS=("selfreview" "pr" "dora" "decompose")
+get_pack_dir() {
+  case "$1" in
+    extras) echo "$REPO_ROOT/extension" ;;
+    bolt)   echo "$REPO_ROOT/extension-bolt" ;;
+    *) echo "Unknown pack: $1. Available: extras, bolt, all" >&2; exit 1 ;;
+  esac
+}
+
+get_pack_commands() {
+  case "$1" in
+    extras) echo "selfreview pr dora decompose" ;;
+    bolt)   echo "bolt archive retrospective roadmap" ;;
+    *) echo "Unknown pack: $1" >&2; exit 1 ;;
+  esac
+}
+
+get_templates_dir() {
+  case "$1" in
+    extras) echo "$REPO_ROOT/templates/commands" ;;
+    bolt)   echo "$REPO_ROOT/extension-bolt/commands" ;;
+    *) echo "Unknown pack: $1" >&2; exit 1 ;;
+  esac
+}
 
 if [[ "$LIST" == true ]]; then
-  echo "Available commands:"
-  for cmd in "${COMMANDS[@]}"; do
-    desc=$(sed -n '2s/^description: //p' "$TEMPLATES_DIR/$cmd.md")
-    echo "  speckit.$cmd — $desc"
+  for pack in extras bolt; do
+    echo "[$pack]"
+    pack_dir=$(get_pack_dir "$pack")
+    for f in "$pack_dir"/commands/speckit.*.md; do
+      name=$(basename "$f" .md | sed 's/^speckit\.//')
+      desc=$(sed -n 's/^description: *"\{0,1\}//p' "$f" | sed 's/"\{0,1\}$//' | head -1)
+      echo "  speckit.$name — $desc"
+    done
+    echo ""
   done
   exit 0
 fi
@@ -133,10 +161,13 @@ $body
 TOML
 }
 
-install_extension() {
-  local dest="${TARGET:-.specify/extensions/extras}"
+install_single_extension() {
+  local pack="$1"
+  local pack_dir
+  pack_dir=$(get_pack_dir "$pack")
+  local dest="${TARGET:-.specify/extensions/$pack}"
 
-  echo "Installing Spec Kit Extras as extension"
+  echo "Installing extension: $pack"
   echo "Target: $dest"
   echo ""
 
@@ -147,36 +178,53 @@ install_extension() {
   if [[ "$DRY_RUN" == true ]]; then
     echo "  WOULD COPY extension.yml → $dest/extension.yml"
   else
-    cp "$EXTENSION_DIR/extension.yml" "$dest/extension.yml"
+    cp "$pack_dir/extension.yml" "$dest/extension.yml"
     echo "  INSTALLED $dest/extension.yml"
   fi
 
   local installed=0
-  for cmd in "${COMMANDS[@]}"; do
-    local src="$EXTENSION_DIR/commands/speckit.$cmd.md"
-    local dest_file="$dest/commands/speckit.$cmd.md"
-
-    if [[ ! -f "$src" ]]; then
-      echo "  SKIP speckit.$cmd (source not found)"
-      continue
-    fi
+  for f in "$pack_dir"/commands/speckit.*.md; do
+    local name
+    name=$(basename "$f")
+    local dest_file="$dest/commands/$name"
 
     if [[ "$DRY_RUN" == true ]]; then
-      echo "  WOULD COPY $src → $dest_file"
+      echo "  WOULD COPY $f → $dest_file"
     else
-      cp "$src" "$dest_file"
+      cp "$f" "$dest_file"
       echo "  INSTALLED $dest_file"
     fi
     installed=$((installed + 1))
   done
 
+  if [[ -d "$pack_dir/scripts" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  WOULD COPY scripts/ → $dest/scripts/"
+    else
+      cp -r "$pack_dir/scripts" "$dest/scripts"
+      chmod +x "$dest"/scripts/bash/*.sh 2>/dev/null || true
+      echo "  INSTALLED $dest/scripts/"
+    fi
+  fi
+
   echo ""
-  echo "Done. Extension installed ($installed commands)."
+  echo "Done. $pack extension installed ($installed commands)."
+}
+
+install_extension() {
+  if [[ "$PACK" == "all" ]]; then
+    install_single_extension "extras"
+    echo ""
+    TARGET="" install_single_extension "bolt"
+  else
+    install_single_extension "$PACK"
+  fi
+
   echo ""
   echo "Next steps:"
   echo "  1. The specify CLI will register commands for your agent on next run"
   echo "  2. Or manually copy commands to your agent directory with:"
-  echo "     $0 --standalone --agent <your-agent>"
+  echo "     $0 --standalone --agent <your-agent> --pack <pack>"
 }
 
 install_standalone() {
@@ -191,7 +239,14 @@ install_standalone() {
   local ext
   ext=$(get_extension "$AGENT")
 
-  echo "Installing Spec Kit Extras (standalone) for: $AGENT"
+  local packs
+  if [[ "$PACK" == "all" ]]; then
+    packs="extras bolt"
+  else
+    packs="$PACK"
+  fi
+
+  echo "Installing Spec Kit ($packs) standalone for: $AGENT"
   echo "Target directory: $TARGET"
   echo "Format: $format"
   echo ""
@@ -201,26 +256,27 @@ install_standalone() {
   fi
 
   local installed=0
-  for cmd in "${COMMANDS[@]}"; do
-    local src="$TEMPLATES_DIR/$cmd.md"
-    local dest="$TARGET/${prefix}${cmd}${ext}"
+  for pack in $packs; do
+    local pack_dir
+    pack_dir=$(get_pack_dir "$pack")
 
-    if [[ ! -f "$src" ]]; then
-      echo "  SKIP $cmd (source not found: $src)"
-      continue
-    fi
+    for src in "$pack_dir"/commands/speckit.*.md; do
+      local cmd_name
+      cmd_name=$(basename "$src" .md | sed 's/^speckit\.//')
+      local dest="$TARGET/${prefix}${cmd_name}${ext}"
 
-    if [[ "$DRY_RUN" == true ]]; then
-      echo "  WOULD INSTALL $dest ($format)"
-    else
-      if [[ "$format" == "toml" ]]; then
-        convert_to_toml "$src" > "$dest"
+      if [[ "$DRY_RUN" == true ]]; then
+        echo "  WOULD INSTALL $dest ($format)"
       else
-        cp "$src" "$dest"
+        if [[ "$format" == "toml" ]]; then
+          convert_to_toml "$src" > "$dest"
+        else
+          cp "$src" "$dest"
+        fi
+        echo "  INSTALLED $dest"
       fi
-      echo "  INSTALLED $dest"
-    fi
-    installed=$((installed + 1))
+      installed=$((installed + 1))
+    done
   done
 
   echo ""
