@@ -48,33 +48,33 @@ jobs:
           fi
           echo "All templates valid."
 
-      - name: Validate extension manifest
+      - name: Validate extension manifests
         run: |
-          echo "Checking extension/extension.yml..."
+          for dir in extension extension-bolt; do
+            echo "Checking $dir/extension.yml..."
 
-          if [ ! -f extension/extension.yml ]; then
-            echo "FAIL: extension.yml not found"
-            exit 1
-          fi
-
-          # Check required fields exist
-          for field in schema_version extension requires provides hooks; do
-            if ! grep -q "^$field:" extension/extension.yml; then
-              echo "FAIL: missing top-level field: $field"
+            if [ ! -f "$dir/extension.yml" ]; then
+              echo "FAIL: $dir/extension.yml not found"
               exit 1
             fi
+
+            for field in schema_version extension requires provides; do
+              if ! grep -q "^$field:" "$dir/extension.yml"; then
+                echo "FAIL: $dir missing top-level field: $field"
+                exit 1
+              fi
+            done
+
+            count=$(grep -c "name: speckit\." "$dir/extension.yml" || true)
+            if [ "$count" -ne 4 ]; then
+              echo "FAIL: expected 4 commands in $dir manifest, found $count"
+              exit 1
+            fi
+
+            echo "  OK ($dir manifest valid, $count commands declared)"
           done
 
-          # Verify all 4 commands declared
-          count=$(grep -c "name: speckit\." extension/extension.yml || true)
-          if [ "$count" -ne 4 ]; then
-            echo "FAIL: expected 4 commands in manifest, found $count"
-            exit 1
-          fi
-
-          echo "  OK (manifest valid, $count commands declared)"
-
-      - name: Validate extension commands match templates
+      - name: Validate extension commands present
         run: |
           for cmd in selfreview pr dora decompose; do
             if [ ! -f "extension/commands/speckit.$cmd.md" ]; then
@@ -82,31 +82,38 @@ jobs:
               exit 1
             fi
           done
+          for cmd in bolt archive retrospective roadmap; do
+            if [ ! -f "extension-bolt/commands/speckit.$cmd.md" ]; then
+              echo "FAIL: extension-bolt/commands/speckit.$cmd.md missing"
+              exit 1
+            fi
+          done
           echo "All extension commands present."
 
   extension-install-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pack: [extras, bolt]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test extension install
+      - name: Test extension install (${{ matrix.pack }})
         run: |
           tmp=$(mktemp -d)
-          ./scripts/install.sh --extension --target "$tmp"
+          ./scripts/install.sh --extension --pack ${{ matrix.pack }} --target "$tmp"
 
-          # Verify extension.yml
           if [ ! -f "$tmp/extension.yml" ]; then
             echo "FAIL: extension.yml not installed"
             exit 1
           fi
 
-          # Verify all commands
           count=$(find "$tmp/commands" -name "speckit.*.md" | wc -l)
           if [ "$count" -ne 4 ]; then
             echo "FAIL: expected 4 commands, got $count"
             exit 1
           fi
-          echo "Extension install OK ($count commands)"
+          echo "Extension install OK ($count commands for ${{ matrix.pack }})"
 
       - name: Test extension dry-run
         run: |
@@ -125,13 +132,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run standalone install for ${{ matrix.agent }}
+      - name: Run standalone install for ${{ matrix.agent }} (extras)
         run: |
           tmp=$(mktemp -d)
-          ./scripts/install.sh --standalone --agent ${{ matrix.agent }} --target "$tmp"
+          ./scripts/install.sh --standalone --pack extras --agent ${{ matrix.agent }} --target "$tmp"
 
           count=$(find "$tmp" -name "speckit*" | wc -l)
-          echo "Installed $count command(s) for ${{ matrix.agent }}"
+          echo "Installed $count command(s) for ${{ matrix.agent }} (extras)"
+
+          if [ "$count" -ne 4 ]; then
+            echo "FAIL: expected 4 commands, got $count"
+            exit 1
+          fi
+
+      - name: Run standalone install for ${{ matrix.agent }} (bolt)
+        run: |
+          tmp=$(mktemp -d)
+          ./scripts/install.sh --standalone --pack bolt --agent ${{ matrix.agent }} --target "$tmp"
+
+          count=$(find "$tmp" -name "speckit*" | wc -l)
+          echo "Installed $count command(s) for ${{ matrix.agent }} (bolt)"
 
           if [ "$count" -ne 4 ]; then
             echo "FAIL: expected 4 commands, got $count"

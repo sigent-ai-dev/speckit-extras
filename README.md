@@ -8,12 +8,25 @@ Spec Kit Extras is a collection of AI agent commands that add delivery-quality d
 
 ## What's Included
 
+### Quality Gates (extension: `extras`)
+
 | Command | What it does | Works with |
 |---------|-------------|------------|
 | `/speckit.selfreview` | Rigorous self-review of a PR before requesting human review | Any GitHub repo |
 | `/speckit.pr` | Create a PR with closing-claim accuracy gate | Any repo with a PR template |
 | `/speckit.dora` | Generate weekly DORA metrics from GitHub data | Any GH repo with PRs + Actions |
 | `/speckit.decompose` | Decompose design docs into right-sized GitHub issues | Any repo with design docs |
+
+### Bolt Cycles (extension: `bolt`)
+
+A **bolt** is a faster sprint — a tightly time-boxed delivery cycle (default 1 week) that groups features, tracks decisions, and archives outcomes. Think of it as a sprint with less ceremony and more momentum.
+
+| Command | What it does | Works with |
+|---------|-------------|------------|
+| `/speckit.bolt` | Create and manage bolt cycles — start, add features, track status, complete | Any Spec Kit project |
+| `/speckit.archive` | Archive completed bolt with summary, decisions, and retrospective prep | After bolt completes |
+| `/speckit.retrospective` | Clarify past decisions, identify improvements, document lessons | Any archived bolt |
+| `/speckit.roadmap` | Project-level roadmap across bolt cycles | Any project with bolts |
 
 ### Works well with
 
@@ -47,6 +60,11 @@ If your project uses Spec Kit, install as an extension:
 ```
 
 This installs `extension.yml` + commands into `.specify/extensions/extras/` and enables hooks (auto self-review after `/speckit.implement`).
+
+```bash
+# Install bolt cycles extension
+./scripts/install.sh --extension --pack bolt
+```
 
 ### Standalone (any project)
 
