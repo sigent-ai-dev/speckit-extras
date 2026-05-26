@@ -200,3 +200,9 @@ jobs:
 
       - name: Shellcheck install script
         run: npx shellcheck scripts/install.sh
+
+      - name: Shellcheck bolt scripts
+        run: |
+          npx shellcheck -e SC1091,SC2155 extension-bolt/scripts/bash/create-bolt.sh
+          npx shellcheck -e SC1091,SC2155 extension-bolt/scripts/bash/archive-bolt.sh
+          npx shellcheck -e SC1091,SC2155 extension-bolt/scripts/bash/common.sh

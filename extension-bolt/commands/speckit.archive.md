@@ -55,19 +55,19 @@ You **MUST** execute the bolt archive process.
    Build the command with approved features:
    ```bash
    # Bash
-   bash .specify/scripts/bash/archive-bolt.sh --archive-features "005-api-lambda-implementation,007-deploy-frontend-aws"
+   bash .specify/extensions/bolt/scripts/bash/archive-bolt.sh --archive-features "005-api-lambda-implementation,007-deploy-frontend-aws"
    
    # PowerShell
-   pwsh .specify/scripts/powershell/archive-bolt.ps1 -ArchiveFeatures "005-api-lambda-implementation,007-deploy-frontend-aws"
+   pwsh .specify/extensions/bolt/scripts/powershell/archive-bolt.ps1 -ArchiveFeatures "005-api-lambda-implementation,007-deploy-frontend-aws"
    ```
    
    Or if no additional features:
    ```bash
    # Bash
-   bash .specify/scripts/bash/archive-bolt.sh
+   bash .specify/extensions/bolt/scripts/bash/archive-bolt.sh
    
    # PowerShell
-   pwsh .specify/scripts/powershell/archive-bolt.ps1
+   pwsh .specify/extensions/bolt/scripts/powershell/archive-bolt.ps1
    ```
    
    The script will:
@@ -313,16 +313,16 @@ The `/speckit.archive` command uses the `archive-bolt` script to handle:
 - Template processing
 
 **Script Location**:
-- Bash: `scripts/bash/archive-bolt.sh`
-- PowerShell: `scripts/powershell/archive-bolt.ps1`
+- Bash: `.specify/extensions/bolt/scripts/bash/archive-bolt.sh`
+- PowerShell: `.specify/extensions/bolt/scripts/powershell/archive-bolt.ps1`
 
 **Usage**:
 ```bash
 # Bash
-./scripts/bash/archive-bolt.sh --json --summary "Custom summary text"
+./.specify/extensions/bolt/scripts/bash/archive-bolt.sh --json --summary "Custom summary text"
 
 # PowerShell
-./scripts/powershell/archive-bolt.ps1 -Json -Summary "Custom summary text"
+./.specify/extensions/bolt/scripts/powershell/archive-bolt.ps1 -Json -Summary "Custom summary text"
 ```
 
 {SCRIPT}

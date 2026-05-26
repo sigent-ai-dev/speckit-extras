@@ -38,10 +38,10 @@ The user's input will be one of these commands. **Execute the corresponding acti
 4. Execute the create-bolt script with goal and criteria:
    ```bash
    # Bash
-   bash .specify/scripts/bash/create-bolt.sh --duration "2w" --goal "$BOLT_GOAL" --criteria "$CRITERIA_STRING" "Bolt Name"
+   bash .specify/extensions/bolt/scripts/bash/create-bolt.sh --duration "2w" --goal "$BOLT_GOAL" --criteria "$CRITERIA_STRING" "Bolt Name"
    
    # PowerShell
-   pwsh .specify/scripts/powershell/create-bolt.ps1 -Duration "2w" -Goal "$BOLT_GOAL" -Criteria "$CRITERIA_STRING" "Bolt Name"
+   pwsh .specify/extensions/bolt/scripts/powershell/create-bolt.ps1 -Duration "2w" -Goal "$BOLT_GOAL" -Criteria "$CRITERIA_STRING" "Bolt Name"
    ```
    
    Note: The criteria string should be pipe-separated (|) for multiple criteria
@@ -89,10 +89,10 @@ The user's input will be one of these commands. **Execute the corresponding acti
 1. Execute the archive-bolt script:
    ```bash
    # Bash
-   bash .specify/scripts/bash/archive-bolt.sh
+   bash .specify/extensions/bolt/scripts/bash/archive-bolt.sh
    
    # PowerShell
-   pwsh .specify/scripts/powershell/archive-bolt.ps1
+   pwsh .specify/extensions/bolt/scripts/powershell/archive-bolt.ps1
    ```
 2. Answer any interactive prompts about near-complete features
 3. Parse the script output and report success/failure to the user
@@ -308,16 +308,16 @@ The `/speckit.bolt start` command uses the `create-bolt` script to handle:
 - File initialization
 
 **Script Location**:
-- Bash: `scripts/bash/create-bolt.sh`
-- PowerShell: `scripts/powershell/create-bolt.ps1`
+- Bash: `.specify/extensions/bolt/scripts/bash/create-bolt.sh`
+- PowerShell: `.specify/extensions/bolt/scripts/powershell/create-bolt.ps1`
 
 **Usage**:
 ```bash
 # Bash
-./scripts/bash/create-bolt.sh --json --duration 2w "Bolt Name"
+./.specify/extensions/bolt/scripts/bash/create-bolt.sh --json --duration 2w "Bolt Name"
 
 # PowerShell
-./scripts/powershell/create-bolt.ps1 -Json -Duration 2w "Bolt Name"
+./.specify/extensions/bolt/scripts/powershell/create-bolt.ps1 -Json -Duration 2w "Bolt Name"
 ```
 
 {SCRIPT}

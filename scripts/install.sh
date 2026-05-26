@@ -197,6 +197,16 @@ install_single_extension() {
     installed=$((installed + 1))
   done
 
+  if [[ -d "$pack_dir/scripts" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  WOULD COPY scripts/ → $dest/scripts/"
+    else
+      cp -r "$pack_dir/scripts" "$dest/scripts"
+      chmod +x "$dest"/scripts/bash/*.sh 2>/dev/null || true
+      echo "  INSTALLED $dest/scripts/"
+    fi
+  fi
+
   echo ""
   echo "Done. $pack extension installed ($installed commands)."
 }

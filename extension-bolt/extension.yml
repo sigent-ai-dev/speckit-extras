@@ -30,6 +30,18 @@ provides:
       file: commands/speckit.roadmap.md
       description: "Project-level roadmap across bolt cycles"
 
+  scripts:
+    - file: scripts/bash/create-bolt.sh
+      description: "Create bolt directory structure and initialize files"
+    - file: scripts/bash/archive-bolt.sh
+      description: "Archive active bolt to archive directory"
+    - file: scripts/bash/common.sh
+      description: "Shared utilities for bolt scripts"
+    - file: scripts/powershell/create-bolt.ps1
+      description: "Create bolt directory structure (PowerShell)"
+    - file: scripts/powershell/archive-bolt.ps1
+      description: "Archive active bolt (PowerShell)"
+
 hooks:
   after_implement:
     command: speckit.bolt
@@ -48,6 +60,6 @@ tags:
 config:
   defaults:
     default_duration: "1w"
-    archive_dir: ".specify/sprints/archive"
-    active_dir: ".specify/sprints/active"
-    roadmap_file: ".specify/sprints/roadmap.md"
+    archive_dir: "bolts/archive"
+    active_dir: "bolts/active"
+    roadmap_file: "bolts/roadmap.md"
