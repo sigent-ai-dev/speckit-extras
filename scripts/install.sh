@@ -25,7 +25,8 @@ Options:
   -h, --help        Show this help
 
 Supported agents:
-  claude          .claude/commands/
+  claude          .claude/skills/            (skills format, default)
+  kiro            .kiro/prompts/
   gemini          .gemini/commands/          (TOML format)
   copilot         .github/agents/
   cursor-agent    .cursor/commands/
@@ -109,6 +110,7 @@ fi
 get_target_dir() {
   case "$1" in
     claude)       echo ".claude/commands" ;;
+    kiro)         echo ".kiro/prompts" ;;
     gemini)       echo ".gemini/commands" ;;
     copilot)      echo ".github/agents" ;;
     cursor-agent) echo ".cursor/commands" ;;
@@ -136,7 +138,7 @@ get_format() {
 
 get_prefix() {
   case "$1" in
-    claude|gemini|cursor-agent|qwen|opencode|codex|codebuddy|amp|shai) echo "speckit." ;;
+    claude|kiro|gemini|cursor-agent|qwen|opencode|codex|codebuddy|amp|shai) echo "speckit." ;;
     copilot|windsurf|kilocode|auggie|roo|q) echo "speckit-" ;;
   esac
 }
