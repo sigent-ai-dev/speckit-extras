@@ -12,7 +12,9 @@ Install Spec Kit Extras as a Spec Kit extension or standalone commands.
 
 Modes:
   --extension       Install as Spec Kit extension (default)
-  --standalone      Install commands directly into agent commands directory
+  --standalone      Install as flat commands into agent directory
+  --skills          Install as Claude Code skills (default for claude standalone)
+  --commands        Install as flat commands (override skills default)
 
 Options:
   --pack <name>     Extension pack to install: extras (default), bolt, all
@@ -43,6 +45,7 @@ EOF
 }
 
 MODE="extension"
+FORMAT_MODE="skills"
 PACK="extras"
 AGENT="claude"
 TARGET=""
@@ -53,6 +56,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --extension) MODE="extension"; shift ;;
     --standalone) MODE="standalone"; shift ;;
+    --skills) MODE="standalone"; FORMAT_MODE="skills"; shift ;;
+    --commands) MODE="standalone"; FORMAT_MODE="commands"; shift ;;
     --pack) PACK="$2"; shift 2 ;;
     --agent) AGENT="$2"; shift 2 ;;
     --target) TARGET="$2"; shift 2 ;;
@@ -159,6 +164,73 @@ prompt = """
 $body
 """
 TOML
+}
+
+convert_to_skill() {
+  local src="$1"
+  local cmd_name="$2"
+  local desc
+  desc=$(sed -n 's/^description: *//p' "$src" | head -1)
+
+  local body
+  body=$(awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$src")
+
+  cat <<SKILL
+---
+name: "speckit-$cmd_name"
+description: "$desc"
+argument-hint: ""
+compatibility: "Requires GitHub repo with gh CLI"
+metadata:
+  author: "speckit-extras"
+  source: "speckit-extras/extension/commands/speckit.$cmd_name.md"
+  version: "2.0.0"
+user-invocable: true
+disable-model-invocation: false
+---
+
+$body
+SKILL
+}
+
+install_skills() {
+  local target="${TARGET:-.claude/skills}"
+
+  local packs
+  if [[ "$PACK" == "all" ]]; then
+    packs="extras bolt"
+  else
+    packs="$PACK"
+  fi
+
+  echo "Installing Spec Kit ($packs) as Claude Code skills"
+  echo "Target: $target"
+  echo ""
+
+  local installed=0
+  for pack in $packs; do
+    local pack_dir
+    pack_dir=$(get_pack_dir "$pack")
+
+    for src in "$pack_dir"/commands/speckit.*.md; do
+      local cmd_name
+      cmd_name=$(basename "$src" .md | sed 's/^speckit\.//')
+      local skill_dir="$target/speckit-$cmd_name"
+      local dest_file="$skill_dir/SKILL.md"
+
+      if [[ "$DRY_RUN" == true ]]; then
+        echo "  WOULD CREATE $dest_file"
+      else
+        mkdir -p "$skill_dir"
+        convert_to_skill "$src" "$cmd_name" > "$dest_file"
+        echo "  INSTALLED $dest_file"
+      fi
+      installed=$((installed + 1))
+    done
+  done
+
+  echo ""
+  echo "Done. $installed skill(s) installed."
 }
 
 install_single_extension() {
@@ -295,6 +367,8 @@ install_standalone() {
 
 if [[ "$MODE" == "extension" ]]; then
   install_extension
+elif [[ "$FORMAT_MODE" == "skills" && "$AGENT" == "claude" ]]; then
+  install_skills
 else
   install_standalone
 fi
